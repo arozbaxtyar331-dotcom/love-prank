@@ -1,1 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Will you be my girlfriend?</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
 
+    html, body {
+      min-height: 100%;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #ffe6f0, #ffd1dc);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .page {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+
+    .card {
+      width: min(560px, 100%);
+      padding: 36px 24px 22px;
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.82);
+      box-shadow: 0 18px 45px rgba(231, 84, 128, 0.2);
+      text-align: center;
+    }
+
+    .question {
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      margin: 0 0 18px;
+      color: #e75480;
+      font-weight: 700;
+    }
+
+    .subtitle {
+      margin: 0 0 28px;
+      color: #6b3a4d;
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+      min-height: 74px;
+      position: relative;
+    }
+
+    .buttons #yesBtn {
+      order: 0;
+      transform: scale(1.04);
+      box-shadow: 0 14px 28px rgba(231, 84, 128, 0.28);
+      animation: pulse 1.6s ease-in-out infinite;
+    }
+
+    .buttons #noBtn {
+      order: 1;
+    }
+
+    .no-feedback {
+      min-height: 28px;
+      margin-top: 14px;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #b53f67;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    .no-feedback.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .no-feedback:not(.show) {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+
+    button {
+      font-size: 1.1rem;
+      padding: 14px 28px;
+      border: none;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: transform 0.18s ease, left 0.18s ease, top 0.18s ease;
+      font-weight: 800;
+      box-shadow: 0 10px 22px rgba(95, 33, 66, 0.16);
+      position: relative;
+    }
+
+    button:hover {
+      transform: translateY(-2px) scale(1.02);
+    }
+
+    button:active {
+      transform: translateY(1px) scale(0.99);
+    }
+
+    #yesBtn {
+      background: #e75480;
+      color: white;
+    }
+
+    #noBtn {
+      background: #f8bbd0;
+      color: #e75480;
+    }
+
+    #response {
+      margin-top: 50px;
+      font-size: clamp(1.6rem, 3vw, 2.6rem);
+      color: #e75480;
+      font-weight: bold;
+      display: none;
+    }
+
+    .heart {
+      color: #e75480;
+      font-size: 3rem;
+      animation: pop 0.6s;
+    }
+
+    .footer {
+      margin-top: 26px;
+      font-size: 0.85rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(95, 33, 66, 0.72);
+    }
+
+    @keyframes pop {
+      0% { transform: scale(0.7);}
+      70% { transform: scale(1.2);}
+      100% { transform: scale(1);}
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1.04); }
+      50% { transform: scale(1.1); }
+    }
+
+    .moving {
+      position: fixed !important;
+      z-index: 20;
+      pointer-events: auto;
+    }
+
+    @media (max-width: 640px) {
+      .card {
+        padding: 28px 18px 18px;
+      }
+
+      .buttons {
+        gap: 14px;
+      }
+
+      button {
+        width: min(240px, 100%);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="card">
+      <div class="question">Will you be my girlfriend?</div>
+      <p class="subtitle">Try to press No if you can. If not, maybe Yes is the right answer.</p>
+      <div class="buttons">
+        <button id="yesBtn">Yes</button>
+        <button id="noBtn">No</button>
+      </div>
+      <div id="noFeedback" class="no-feedback" aria-live="polite"></div>
+      <div id="response">
+        I love you too! <span class="heart">❤️</span>
+      </div>
+      <div class="footer">Developed by AROZ MUSTAFA</div>
+    </div>
+  </div>
+
+  <script>
+    const yesBtn = document.getElementById('yesBtn');
+    const noBtn = document.getElementById('noBtn');
+    const response = document.getElementById('response');
+    const noFeedback = document.getElementById('noFeedback');
+    const buttonsDiv = document.querySelector('.buttons');
+    const noPadding = 16;
+    const maxNoMoves = 1000;
+    let noMoveCount = 0;
+    let noSentenceCount = 0;
+    let prankStarted = false;
+    const noMessages = [
+      'Choose Yes, it is the right answer.',
+      'Yes is the one your heart wants.',
+      'Wrong choice, try Yes now.',
+      'You missed it again, go for Yes.',
+      'No is running away, Yes is waiting for you.',
+      'This is your sign to click Yes.',
+      'Be with Yes, that is the sweet choice.',
+      'One more try, but the answer is still Yes.'
+    ];
+
+    function moveNoButton() {
+      const buttonRect = noBtn.getBoundingClientRect();
+      const maxX = Math.max(noPadding, window.innerWidth - buttonRect.width - noPadding);
+      const maxY = Math.max(noPadding, window.innerHeight - buttonRect.height - noPadding);
+      const newLeft = noPadding + Math.random() * Math.max(1, maxX - noPadding);
+      const newTop = noPadding + Math.random() * Math.max(1, maxY - noPadding);
+
+      noBtn.classList.add('moving');
+      noBtn.style.left = `${newLeft}px`;
+      noBtn.style.top = `${newTop}px`;
+    }
+
+    function prepareNoButton() {
+      if (noBtn.style.position !== 'fixed') {
+        noBtn.style.position = 'fixed';
+      }
+
+      moveNoButton();
+    }
+
+    function dodgeNoButton(event) {
+      event.preventDefault();
+
+      if (noMoveCount >= maxNoMoves) {
+        noFeedback.textContent = 'No has already run away too many times. Choose Yes.';
+        noFeedback.classList.add('show');
+        return;
+      }
+
+      if (!prankStarted) {
+        prankStarted = true;
+      }
+
+      noMoveCount += 1;
+      noSentenceCount = (noSentenceCount + 1) % noMessages.length;
+      noFeedback.textContent = noMessages[noSentenceCount];
+      noFeedback.classList.add('show');
+      prepareNoButton();
+    }
+
+    yesBtn.addEventListener('click', () => {
+      buttonsDiv.style.display = 'none';
+      response.style.display = 'block';
+    });
+
+    noBtn.addEventListener('click', dodgeNoButton);
+    noBtn.addEventListener('touchend', dodgeNoButton, { passive: false });
+
+    window.addEventListener('resize', () => {
+      if (prankStarted) {
+        prepareNoButton();
+      }
+    });
+  </script>
+</body>
+</html>
